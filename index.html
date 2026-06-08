@@ -1,103 +1,298 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Prospects Database</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 30px; background: #f7f7f7; }
-    h1 { margin-bottom: 5px; }
-    input, select { padding: 10px; margin: 8px 8px 8px 0; }
-    .card { background: white; border: 1px solid #ddd; padding: 18px; margin: 12px 0; border-radius: 10px; }
-    .name { font-size: 22px; font-weight: bold; }
-    .meta { color: #555; margin: 6px 0; }
-    .notes { margin-top: 10px; font-style: italic; }
-  </style>
+<meta charset="UTF-8">
+<title>Prospects Database</title>
+
+<style>
+body{
+    font-family:Arial,sans-serif;
+    background:#f4f4f4;
+    padding:20px;
+}
+
+h1{
+    margin-bottom:5px;
+}
+
+.filters{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+input,select{
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:6px;
+}
+
+.card{
+    background:white;
+    border-radius:10px;
+    padding:20px;
+    margin-bottom:15px;
+    border:1px solid #ddd;
+}
+
+.name{
+    font-size:26px;
+    font-weight:bold;
+    margin-bottom:10px;
+}
+
+.count{
+    margin-bottom:15px;
+    color:#666;
+}
+</style>
+
 </head>
+
 <body>
-  <h1>Prospects Database</h1>
-  <p>Search and filter AAU players.</p>
 
-  <input id="search" placeholder="Search name, team, school, notes..." />
-  <select id="heightFilter"><option value="">All Heights</option></select>
-<select id="teamFilter"><option value="">All AAU Teams</option></select>
-<select id="circuitFilter"><option value="">All Circuits</option></select>
-<select id="schoolFilter"><option value="">All High Schools</option></select>
-<select id="stateFilter"><option value="">All States</option></select>
-<select id="hometownFilter"><option value="">All Hometowns</option></select>
-<select id="classFilter"><option value="">All Classes</option></select>
-<select id="positionFilter"><option value="">All Positions</option></select>
+<h1>Prospects Database</h1>
 
-  <div id="results">Loading players...</div>
+<p>Search and filter prospects.</p>
 
-  <script>
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRxQBVGszAA1g0jF7GCebtp35yOyhP_AnyHZO5HdGNZt46Kq3U02x6h4BURuhRlgygKrbp9yuwn8bWq/pub?output=csv";
+<div class="filters">
 
-    let players = [];
+<input id="search" placeholder="Search everything...">
 
-    function parseCSV(text) {
-      const rows = text.trim().split("\n").map(row => row.split(","));
-      const headers = rows.shift().map(h => h.trim());
-      return rows.map(row => {
-        let obj = {};
-        headers.forEach((header, i) => obj[header] = row[i] || "");
-        return obj;
-      });
-    }
+<select id="heightFilter">
+<option value="">All Heights</option>
+</select>
 
-    function uniqueValues(field) {
-      return [...new Set(players.map(p => p[field]).filter(Boolean))].sort();
-    }
+<select id="teamFilter">
+<option value="">All AAU Teams</option>
+</select>
 
-    function fillFilter(id, field) {
-      const select = document.getElementById(id);
-      uniqueValues(field).forEach(value => {
-        const option = document.createElement("option");
-        option.value = value;
-        option.textContent = value;
-        select.appendChild(option);
-      });
-    }
+<select id="circuitFilter">
+<option value="">All Circuits</option>
+</select>
 
-    function render() {
-      const search = document.getElementById("search").value.toLowerCase();
-      const circuit = document.getElementById("circuitFilter").value;
-      const state = document.getElementById("stateFilter").value;
+<select id="schoolFilter">
+<option value="">All High Schools</option>
+</select>
 
-      const filtered = players.filter(p => {
-        const matchesSearch = JSON.stringify(p).toLowerCase().includes(search);
-        const matchesCircuit = !circuit || p["AAU Circuit"] === circuit;
-        const matchesState = !state || p["State"] === state;
-        return matchesSearch && matchesCircuit && matchesState;
-      });
+<select id="stateFilter">
+<option value="">All States</option>
+</select>
 
-      document.getElementById("results").innerHTML = filtered.map(p => `
-        <div class="card">
-          <div class="name">${p["Name"] || "Unnamed Player"}</div>
-          <div class="meta">
-            ${p["Height"] || ""} 
-            ${p["Class"] ? "• Class of " + p["Class"] : ""}
-          </div>
-          <div><strong>AAU Team:</strong> ${p["AAU Team"] || "-"}</div>
-          <div><strong>Circuit:</strong> ${p["AAU Circuit"] || "-"}</div>
-          <div><strong>High School:</strong> ${p["High School"] || "-"}</div>
-          <div><strong>State:</strong> ${p["State"] || "-"}</div>
-          <div><strong>Hometown:</strong> ${p["Hometown"] || "-"}</div>
-          <div class="notes">${p["Notes"] || ""}</div>
-        </div>
-      `).join("");
-    }
+<select id="hometownFilter">
+<option value="">All Hometowns</option>
+</select>
 
-    fetch(sheetUrl)
-      .then(response => response.text())
-      .then(text => {
-        players = parseCSV(text);
-        fillFilter("circuitFilter", "AAU Circuit");
-        fillFilter("stateFilter", "State");
-        render();
-      });
+<select id="classFilter">
+<option value="">All Classes</option>
+</select>
 
-    document.getElementById("search").addEventListener("input", render);
-    document.getElementById("circuitFilter").addEventListener("change", render);
-    document.getElementById("stateFilter").addEventListener("change", render);
-  </script>
+<select id="positionFilter">
+<option value="">All Positions</option>
+</select>
+
+</div>
+
+<div class="count" id="playerCount"></div>
+
+<div id="results">
+Loading...
+</div>
+
+<script>
+
+const sheetUrl =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vRxQBVGszAA1g0jF7GCebtp35yOyhP_AnyHZO5HdGNZt46Kq3U02x6h4BURuhRlgygKrbp9yuwn8bWq/pub?output=csv";
+
+let players=[];
+
+function parseCSV(text){
+
+const rows=text
+.trim()
+.split("\n")
+.map(row=>row.split(","));
+
+const headers=rows.shift();
+
+return rows.map(row=>{
+const obj={};
+
+headers.forEach((h,i)=>{
+obj[h.trim()] = row[i] || "";
+});
+
+return obj;
+});
+
+}
+
+function uniqueValues(field){
+
+return [...new Set(
+players
+.map(p=>p[field])
+.filter(Boolean)
+)]
+.sort();
+
+}
+
+function fillFilter(id,field){
+
+const select=document.getElementById(id);
+
+uniqueValues(field).forEach(value=>{
+
+const option=document.createElement("option");
+
+option.value=value;
+option.textContent=value;
+
+select.appendChild(option);
+
+});
+
+}
+
+function render(){
+
+const search=document.getElementById("search").value.toLowerCase();
+
+const height=document.getElementById("heightFilter").value;
+const team=document.getElementById("teamFilter").value;
+const circuit=document.getElementById("circuitFilter").value;
+const school=document.getElementById("schoolFilter").value;
+const state=document.getElementById("stateFilter").value;
+const hometown=document.getElementById("hometownFilter").value;
+const playerClass=document.getElementById("classFilter").value;
+const position=document.getElementById("positionFilter").value;
+
+const filtered=players.filter(p=>{
+
+const matchesSearch=
+JSON.stringify(p)
+.toLowerCase()
+.includes(search);
+
+const matchesHeight=
+!height || p["Height"]===height;
+
+const matchesTeam=
+!team || p["AAU Team"]===team;
+
+const matchesCircuit=
+!circuit || p["AAU Circuit"]===circuit;
+
+const matchesSchool=
+!school || p["High School"]===school;
+
+const matchesState=
+!state || p["State"]===state;
+
+const matchesHometown=
+!hometown || p["Hometown"]===hometown;
+
+const matchesClass=
+!playerClass || p["Class"]===playerClass;
+
+const matchesPosition=
+!position || p["Position"]===position;
+
+return matchesSearch &&
+matchesHeight &&
+matchesTeam &&
+matchesCircuit &&
+matchesSchool &&
+matchesState &&
+matchesHometown &&
+matchesClass &&
+matchesPosition;
+
+});
+
+document.getElementById("playerCount").innerHTML =
+filtered.length + " players";
+
+document.getElementById("results").innerHTML =
+filtered.map(p=>`
+
+<div class="card">
+
+<div class="name">
+${p["Name"] || ""}
+</div>
+
+<div><strong>Height:</strong> ${p["Height"] || "-"}</div>
+
+<div><strong>Position:</strong> ${p["Position"] || "-"}</div>
+
+<div><strong>Class:</strong> ${p["Class"] || "-"}</div>
+
+<div><strong>AAU Team:</strong> ${p["AAU Team"] || "-"}</div>
+
+<div><strong>Circuit:</strong> ${p["AAU Circuit"] || "-"}</div>
+
+<div><strong>High School:</strong> ${p["High School"] || "-"}</div>
+
+<div><strong>State:</strong> ${p["State"] || "-"}</div>
+
+<div><strong>Hometown:</strong> ${p["Hometown"] || "-"}</div>
+
+<div style="margin-top:10px;">
+${p["Notes"] || ""}
+</div>
+
+</div>
+
+`).join("");
+
+}
+
+fetch(sheetUrl)
+.then(response=>response.text())
+.then(text=>{
+
+players=parseCSV(text);
+
+fillFilter("heightFilter","Height");
+fillFilter("teamFilter","AAU Team");
+fillFilter("circuitFilter","AAU Circuit");
+fillFilter("schoolFilter","High School");
+fillFilter("stateFilter","State");
+fillFilter("hometownFilter","Hometown");
+fillFilter("classFilter","Class");
+fillFilter("positionFilter","Position");
+
+render();
+
+});
+
+[
+"search",
+"heightFilter",
+"teamFilter",
+"circuitFilter",
+"schoolFilter",
+"stateFilter",
+"hometownFilter",
+"classFilter",
+"positionFilter"
+].forEach(id=>{
+
+document
+.getElementById(id)
+.addEventListener(
+id==="search" ? "input" : "change",
+render
+);
+
+});
+
+</script>
+
 </body>
 </html>
+```
