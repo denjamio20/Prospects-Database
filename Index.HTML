@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Team Database</title>
+  <style>
+    body { font-family: Arial; padding: 30px; }
+    input { padding: 10px; width: 100%; max-width: 500px; margin-bottom: 20px; }
+    .card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+    .tag { background: #eee; padding: 4px 8px; border-radius: 20px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Team Database</h1>
+  <input id="search" placeholder="Search resources..." />
+
+  <div id="results"></div>
+
+  <script>
+    const resources = [
+      {
+        title: "Partnership Playbook",
+        category: "Sales",
+        owner: "Danny",
+        description: "Guide for managing partner conversations.",
+        link: "https://example.com",
+        tags: ["sales", "partners"]
+      },
+      {
+        title: "Onboarding Checklist",
+        category: "Team Ops",
+        owner: "HR",
+        description: "Steps for onboarding new teammates.",
+        link: "https://example.com",
+        tags: ["onboarding", "internal"]
+      }
+    ];
+
+    const results = document.getElementById("results");
+    const search = document.getElementById("search");
+
+    function render(items) {
+      results.innerHTML = items.map(item => `
+        <div class="card">
+          <h2>${item.title}</h2>
+          <p><strong>Category:</strong> ${item.category}</p>
+          <p><strong>Owner:</strong> ${item.owner}</p>
+          <p>${item.description}</p>
+          <p>${item.tags.map(tag => `<span class="tag">${tag}</span>`).join(" ")}</p>
+          <a href="${item.link}" target="_blank">Open</a>
+        </div>
+      `).join("");
+    }
+
+    search.addEventListener("input", () => {
+      const term = search.value.toLowerCase();
+      const filtered = resources.filter(item =>
+        JSON.stringify(item).toLowerCase().includes(term)
+      );
+      render(filtered);
+    });
+
+    render(resources);
+  </script>
+</body>
+</html>
