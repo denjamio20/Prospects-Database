@@ -2,16 +2,96 @@
 <html>
 <head>
   <title>Prospects Database</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 30px; background: #f7f7f7; }
+    h1 { margin-bottom: 5px; }
+    input, select { padding: 10px; margin: 8px 8px 8px 0; }
+    .card { background: white; border: 1px solid #ddd; padding: 18px; margin: 12px 0; border-radius: 10px; }
+    .name { font-size: 22px; font-weight: bold; }
+    .meta { color: #555; margin: 6px 0; }
+    .notes { margin-top: 10px; font-style: italic; }
+  </style>
 </head>
 <body>
   <h1>Prospects Database</h1>
+  <p>Search and filter AAU players.</p>
 
-  <h2>Companies</h2>
+  <input id="search" placeholder="Search name, team, school, notes..." />
+  <select id="circuitFilter"><option value="">All Circuits</option></select>
+  <select id="stateFilter"><option value="">All States</option></select>
 
-  <ul>
-    <li>Nike</li>
-    <li>Adidas</li>
-    <li>Under Armour</li>
-  </ul>
+  <div id="results">Loading players...</div>
+
+  <script>
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRxQBVGszAA1g0jF7GCebtp35yOyhP_AnyHZO5HdGNZt46Kq3U02x6h4BURuhRlgygKrbp9yuwn8bWq/pub?output=csv";
+
+    let players = [];
+
+    function parseCSV(text) {
+      const rows = text.trim().split("\n").map(row => row.split(","));
+      const headers = rows.shift().map(h => h.trim());
+      return rows.map(row => {
+        let obj = {};
+        headers.forEach((header, i) => obj[header] = row[i] || "");
+        return obj;
+      });
+    }
+
+    function uniqueValues(field) {
+      return [...new Set(players.map(p => p[field]).filter(Boolean))].sort();
+    }
+
+    function fillFilter(id, field) {
+      const select = document.getElementById(id);
+      uniqueValues(field).forEach(value => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+      });
+    }
+
+    function render() {
+      const search = document.getElementById("search").value.toLowerCase();
+      const circuit = document.getElementById("circuitFilter").value;
+      const state = document.getElementById("stateFilter").value;
+
+      const filtered = players.filter(p => {
+        const matchesSearch = JSON.stringify(p).toLowerCase().includes(search);
+        const matchesCircuit = !circuit || p["AAU Circuit"] === circuit;
+        const matchesState = !state || p["State"] === state;
+        return matchesSearch && matchesCircuit && matchesState;
+      });
+
+      document.getElementById("results").innerHTML = filtered.map(p => `
+        <div class="card">
+          <div class="name">${p["Name"] || "Unnamed Player"}</div>
+          <div class="meta">
+            ${p["Height"] || ""} 
+            ${p["Class"] ? "• Class of " + p["Class"] : ""}
+          </div>
+          <div><strong>AAU Team:</strong> ${p["AAU Team"] || "-"}</div>
+          <div><strong>Circuit:</strong> ${p["AAU Circuit"] || "-"}</div>
+          <div><strong>High School:</strong> ${p["High School"] || "-"}</div>
+          <div><strong>State:</strong> ${p["State"] || "-"}</div>
+          <div><strong>Hometown:</strong> ${p["Hometown"] || "-"}</div>
+          <div class="notes">${p["Notes"] || ""}</div>
+        </div>
+      `).join("");
+    }
+
+    fetch(sheetUrl)
+      .then(response => response.text())
+      .then(text => {
+        players = parseCSV(text);
+        fillFilter("circuitFilter", "AAU Circuit");
+        fillFilter("stateFilter", "State");
+        render();
+      });
+
+    document.getElementById("search").addEventListener("input", render);
+    document.getElementById("circuitFilter").addEventListener("change", render);
+    document.getElementById("stateFilter").addEventListener("change", render);
+  </script>
 </body>
 </html>
